@@ -19,7 +19,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
-
+from datasubmit import datasubmit
 from seqeval.metrics import classification_report
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -141,7 +141,7 @@ class NerProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "trainset.txt")), "train")
+            self._read_tsv(os.path.join(data_dir, "fulltraindataset.txt")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
@@ -151,10 +151,20 @@ class NerProcessor(DataProcessor):
     def get_test_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "testset.txt")), "test")
+            self._read_tsv(os.path.join(data_dir, "tst1000record.txt")), "test")
 
     def get_labels(self):
-        label_list = []
+        ebaylist = ['Abteilung','Aktivität','Akzente','Anlass','Besonderheiten','Charakter','Charakter Familie',
+'Dämpfungsgrad','Erscheinungsjahr','EU-Schuhgröße','Farbe','Futtermaterial','Gewebeart','Herstellernummer',
+'Herstellungsland und-region','Innensohlenmaterial','Jahreszeit','Laufsohlenmaterial','Marke','Maßeinheit','Modell'
+,'Muster','Obermaterial','Produktart','Produktlinie','Schuhschaft-Typ','Schuhweite','Stil','Stollentyp','Thema',
+'UK-Schuhgröße','US-Schuhgröße','Verschluss', 'Zwischensohlen-Typ']
+        label_list= ['Schuhschaft-Typ', 'Schuhweite', 'Stollentyp', 'EU-Schuhgröße', 'Herstellernummer',
+'Muster', 'Thema', 'CharakterFamilie', 'Charakter', 'Dämpfungsgrad', 'Farbe', 'Gewebeart',
+'Herstellungslandund-region', 'Modell', 'Abteilung', 'Stil', 'Jahreszeit', 'Besonderheiten', 'Verschluss',
+'UK-Schuhgröße', 'Produktlinie', 'Anlass', 'Maßeinheit', 'NoTag', 'Produktart', 'Obscure',
+'Erscheinungsjahr', 'Obermaterial', 'Zwischensohlen-Typ', 'Laufsohlenmaterial', 'Innensohlenmaterial',
+'Aktivität', 'Futtermaterial', 'US-Schuhgröße', 'Marke', 'Akzente','','[CLS]', '[SEP]']
         return [item.replace("'" , '"') for item in label_list]
 
 
@@ -329,11 +339,11 @@ def main():
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
     parser.add_argument("--train_batch_size",
-                        default=16,
+                        default=8,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
-                        default=16,
+                        default=8,
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
@@ -576,7 +586,7 @@ def main():
         model.eval()
         eval_loss, eval_accuracy = 0, 0
         nb_eval_steps, nb_eval_examples = 0, 0
-        y_true = []
+        # y_true = []
         y_pred = []
         label_map = {i : label for i, label in enumerate(label_list,1)}
         for input_ids, input_mask, segment_ids, label_ids,valid_ids,l_mask in tqdm(eval_dataloader, desc="Evaluating"):
@@ -610,32 +620,31 @@ def main():
                         continue
                     elif label_ids[i][j] == len(label_map):
 
-                        y_true.append(temp_1)
+                        # y_true.append(temp_1)
                         y_pred.append(temp_2)
                         break
                     else:
-                        temp_1.append(label_map[label_ids[i][j]])
+                        # temp_1.append(label_map[label_ids[i][j]])
                         temp_2.append(label_map[logits[i][j]])
         # print('iugfoiusha')
-        y_true = [[item if item!= "" else "0" for item in sublist] for sublist in y_true]
+        # y_true = [[item if item!= "" else "0" for item in sublist] for sublist in y_true]
         y_pred = [[item if item != "" else "0" for item in sublist] for sublist in y_pred]
-        print(y_true, 'y_true')  # [] y_true, [] y_pred
+        # print(y_true, 'y_true')  # [] y_true, [] y_pred
         print(y_pred, 'y_pred')
 
-        print(len(y_true),len(y_pred))
-        print(y_true[1000],y_pred[1000])
-        print(y_true[0], y_pred[0])
-        print(y_true[2], y_pred[2])
-        print(y_true[3], y_pred[3])
+        print(len(y_pred))
+        # print(y_pred[1000])
 
-        report = classification_report(y_true, y_pred,digits=4)
-        logger.info("\n%s", report)
-        output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
-        with open(output_eval_file, "w") as writer:
-            logger.info("***** Eval results *****")
-            logger.info("\n%s", report)
-            writer.write(report)
-
+        # report = classification_report(y_true, y_pred,digits=4)
+        # logger.info("\n%s", report)
+        # output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
+        # with open(output_eval_file, "w") as writer:
+        #     logger.info("***** Eval results *****")
+        #     logger.info("\n%s", report)
+        #     writer.write(report)
+        converter = datasubmit('data/tst1000record.txt', 'out_base/submit.tsv')
+        converter.convert()
+        converter.append_array_to_column(y_pred)
 
 if __name__ == "__main__":
     main()
