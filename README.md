@@ -20,6 +20,8 @@ Use google BERT to do CoNLL-2003 NER !
 
 `python test.py --data_dir=data/ --bert_model=bert-base-cased --task_name=ner --output_dir=out_base --max_seq_length=128 --do_train --num_train_epochs 5 --do_eval --warmup_proportion=0.1`
 
+# dataset
+https://drive.google.com/drive/u/0/folders/1XyopBw1-f1JshJJmzNf1DuPFjLGe7NyL
 
 ### C++ unicode support 
 - http://github.com/ufal/unilib
